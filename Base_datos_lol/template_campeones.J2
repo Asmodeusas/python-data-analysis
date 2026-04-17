@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Campeones</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 24px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: left;
+      vertical-align: middle;
+    }
+    th {
+      background: #f5f5f5;
+    }
+    img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      display: block;
+    }
+    .lore {
+      max-width: 420px;
+      white-space: normal;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tabla de campeones</h1>
+
+  <table>
+    <thead>
+  <tr>
+    <th>Icono</th>
+    <th>Codigo</th>
+    <th>Nombre</th>
+    <th>Titulo</th>
+    <th>Lore</th>
+    <th>Ataque</th>
+    <th>Defensa</th>
+    <th>Mana</th>
+    <th>Dificultad</th>
+    <th>Etiqueta</th>
+    <th>Tipo de recurso</th>
+    <th>Vida</th>
+    <th>Poder de Habilidad</th>
+    <th>Armadura</th>
+    <th>Resistencia Magica</th>
+    <th>Rango</th>
+    <th>Regeneracion de Vida</th>
+    <th>Regeneracion de Mana</th>
+    <th>Critico</th>
+    <th>Daño de Ataque</th>
+    <th>Velocidad de Ataque</th>
+    <th>Velocidad de Movimiento</th>
+  </tr>
+</thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td><img src="{{ row.Icono_campeon }}" alt="{{ row.Nombre }}"></td>
+        <td>{{ row.Codigo }}</td>
+        <td>{{ row.Nombre }}</td>
+        <td>{{ row.Titulo }}</td>
+        <td class="lore">{{ row.Lore }}</td>
+        <td>{{ row.Ataque }}</td>
+        <td>{{ row.Defensa }}</td>
+        <td>{{ row['Mana'] }}</td>
+        <td>{{ row.Dificultad }}</td>
+        <td>{{ row.Etiqueta }}</td>
+        <td>{{ row['Tipo de recurso'] }}</td>
+        <td>{{ row.Vida }}</td>
+        <td>{{ row['Poder de Habilidad'] }}</td>
+        <td>{{ row.Armadura }}</td>
+        <td>{{ row['Resistencia Magica'] }}</td>
+        <td>{{ row.Rango }}</td>
+        <td>{{ row['Regeneracion de Vida'] }}</td>
+        <td>{{ row['Regeneracion de Mana'] }}</td>
+        <td>{{ row.Critico }}</td>
+        <td>{{ row['Daño de Ataque'] }}</td>
+        <td>{{ row['Velocidad de Ataque'] }}</td>
+        <td>{{ row['Velocidad de Movimiento'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>
