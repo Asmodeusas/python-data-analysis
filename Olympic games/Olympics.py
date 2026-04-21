@@ -1,5 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from jinja2 import Environment, FileSystemLoader
+
 olympic_games = pd.read_excel('olympics-data.xlsx')
 # utilizamos esta función para leer un excel donde se encuentra un DataFrame ya creado
 
@@ -50,7 +52,8 @@ olympic_games_new["Weight (Kg)"] = pd.to_numeric(
 )
 
 # utilizamos esta función para filtrar entre aquellos atletas que han nacido en Inglaterra
-print(olympic_games_new.query('Country == "UK (GBR)"'))
+filtro_uk = olympic_games_new.query('Country == "UK (GBR)"')
+print(filtro_uk.tail(5))
 
 # esta función es útil para filtrar directamente por string para mirar datos que poseen información específica, en este caso aquellos atletas que de apellido tienen Watson
 filtro_apellido = olympic_games_new[olympic_games_new['Name'].str.contains(
@@ -74,12 +77,12 @@ plt.ylabel("Número de Atletas")
 plt.grid(True,  axis='y')
 # convertimos el eje Y en una escala logarítmica para una mejor distribución de las barras y hacer el gráfico se vuelve más legible
 plt.yscale("log")
-plt.show()
+plt.savefig('Grafico_alturas.png')  # Guardar como PNG
 
 # creamos un gráfico de barras apiladas donde se muestra la distribución de atletas por país y eliminamos aquellas líneas donde pone "Sin Datos"
 atletas_pais = olympic_games_new["Country"]
 atletas_pais = atletas_pais[atletas_pais !=
-                            "Sin Datos"].value_counts().head(20)
+                            "Sin Datos"].value_counts().head(10)
 plt.figure(figsize=(12, 6))
 atletas_pais.plot(kind="bar", color="navy", edgecolor="black")
 plt.title("Distribución de atletas por país")
@@ -87,7 +90,7 @@ plt.xlabel("País")
 plt.ylabel("Número de atletas")
 plt.xticks(rotation=45, ha="right")
 plt.tight_layout()
-plt.show()
+plt.savefig('Grafico_Pais.png')  # Guardar como PNG
 
 # creamos un filtro que muestre las personas pertenecientes a la Región de Madrid que pesan menos de 70 kilos
 filtro_ciudad = olympic_games_new[
@@ -95,3 +98,37 @@ filtro_ciudad = olympic_games_new[
     (olympic_games_new["Region"] == "Madrid")
 ]
 print(filtro_ciudad.head(15))
+
+
+def dataframe_a_html(df):
+    return df.to_html(
+        index=False,
+        classes="tabla",
+        border=0,
+        justify="left",
+        na_rep="Sin Datos"
+    )
+
+
+def generar_reporte_html():
+    env = Environment(loader=FileSystemLoader("."))
+    template = env.get_template("index.j2")
+
+    columnas = list(olympic_games_new.columns)
+
+    html_renderizado = template.render(
+        columnas=columnas,
+        tabla_uk=filtro_uk.tail(5).to_dict(orient="records"),
+        tabla_watson=filtro_apellido.head(10).to_dict(orient="records"),
+        tabla_altos=personas_altas.head(5).to_dict(orient="records"),
+        tabla_madrid=filtro_ciudad.head(15).to_dict(orient="records"),
+        grafico_alturas="Grafico_alturas.png",
+        grafico_pais="Grafico_Pais.png"
+    )
+
+    with open("reporte_olimpicos.html", "w", encoding="utf-8") as f:
+        f.write(html_renderizado)
+
+
+generar_reporte_html()
+print("HTML generado correctamente: reporte_olimpicos.html")
