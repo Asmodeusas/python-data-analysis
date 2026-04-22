@@ -10,7 +10,7 @@ peticion = requests.get(URL)
 Correos_Madrid = peticion.json()
 informacion_correos = Correos_Madrid["@graph"]
 
-
+# hay muchas definiciones anidadas por lo que es necesario normalizar el json para poder utilizarlas
 Oficinas = pd.json_normalize(informacion_correos)
 
 Oficinas["Distrito"] = Oficinas["address.district.@id"].str.split("/").str[-1]
@@ -41,9 +41,11 @@ Titulos_Columnas = {
 
 Oficinas.rename(columns=Titulos_Columnas, inplace=True)
 
+# cogemos la latitud y longitud en numérico para poder representar en un mapa su localización exacta
 Oficinas["Latitud"] = pd.to_numeric(Oficinas["Latitud"], errors="coerce")
 Oficinas["Longitud"] = pd.to_numeric(Oficinas["Longitud"], errors="coerce")
 
+# hacemos un par de splits para ignorar información que no es necesaria
 Oficinas["Horario"] = Oficinas["Horario"].str.split(
     "Consultar").str[0].str.strip()
 Oficinas["Estacion de Metro Cercana"] = Oficinas["Estacion de Metro Cercana"].str.split(
@@ -56,10 +58,13 @@ Oficinas = Oficinas[[
 ].dropna(subset=["Latitud", "Longitud"])
 
 
+# generamos otro DataFrame a partir de un archivo geojson sin importar geopandas para poder añadir al mapa las localizaciones de las Estaciones de Metro
 with open("M4_Estaciones.geojson", "r", encoding="utf-8") as f:
-    data = json.load(f)
+    datos_metro = json.load(f)
 Estaciones_Metro = pd.DataFrame([feat["properties"]
-                                 for feat in data["features"]])
+                                 for feat in datos_metro["features"]])
+
+# nos quedamos con los datos importantes en este caso la longitud, latitud, codigo de la estación, nombre y las líneas con las que conecta
 Estaciones_Metro = pd.DataFrame([
     {
         "Longitud": feat["geometry"]["coordinates"][0],
@@ -68,9 +73,10 @@ Estaciones_Metro = pd.DataFrame([
         "Nombre": feat["properties"].get("DENOMINACION"),
         "Lineas": feat["properties"].get("LINEAS"),
     }
-    for feat in data["features"]
+    for feat in datos_metro["features"]
 ])
 
+# asociamos un color a cada linea
 Mapa_linea_color = [
     {"Linea": "1", "color": "lightblue"},
     {"Linea": "2", "color": "red"},
@@ -90,22 +96,25 @@ Mapa_linea_color = [
 colores_linea = {x["Linea"]: x["color"] for x in Mapa_linea_color}
 
 
-# Center map on the mean of all points (fallback if NaNs)
+# Centramos el mapa en la media de todos los puntos con folium (se utilizará como alternativa si hay valores NaN)
 center_lat = Oficinas["Latitud"].mean()
 center_lon = Oficinas["Longitud"].mean()
-
 Mapa_Oficinas = folium.Map(location=[center_lat, center_lon], zoom_start=13)
+
+# generamos con folium dos capas a las que se pueda hacer toggle según sean oficinas de correos o estaciones de metro
 capa_correos = folium.FeatureGroup(name="Oficinas de Correos", show=True)
 capa_metro = folium.FeatureGroup(name="Estaciones de Metro", show=True)
 
 Mapa_Oficinas.add_child(capa_correos)
 Mapa_Oficinas.add_child(capa_metro)
 
+#  creamos un diccionario vacío para guardar una subcapa por cada línea de metro y construir esas subcapas una a una
 subcapas_metro = {}
 for linea in colores_linea.keys():
     subcapas_metro[linea] = FeatureGroupSubGroup(capa_metro, f"Línea {linea}")
     Mapa_Oficinas.add_child(subcapas_metro[linea])
 
+# le damos forma y color a las Oficinas de Correos y las situamos en el mapa según su longitud y latitud
 for _, row in Oficinas.dropna(subset=["Latitud", "Longitud"]).iterrows():
     popup_text = f"{row['Direccion']}<br>{row['Codigo Postal']}"
     folium.Marker(
@@ -119,6 +128,8 @@ for _, row in Oficinas.dropna(subset=["Latitud", "Longitud"]).iterrows():
         )
     ).add_to(capa_correos)
 
+
+# le damos forma y color a las Estaciones de Metro y las situamos en el mapa según su longitud y latitud y en caso de que las estaciones tengan más de una linea se le asocia el color negro
 for _, row in Estaciones_Metro.dropna(subset=["Latitud", "Longitud"]).iterrows():
     lineas_estacion = [x.strip() for x in str(row["Lineas"]).split(",")]
     popup_text = f"{row['Codigo Estacion']}<br>{row['Nombre']}<br>{row['Lineas']}"
@@ -136,6 +147,7 @@ for _, row in Estaciones_Metro.dropna(subset=["Latitud", "Longitud"]).iterrows()
                 )
             ).add_to(subcapas_metro[linea])
 
+# añadimos un control de capas al mapa para plegar y desplegar grupos desde la interfaz del propio Folium y con collapsed=False evitamos que aparezcan plegadas
 folium.LayerControl(collapsed=False).add_to(Mapa_Oficinas)
 
 GroupedLayerControl(
